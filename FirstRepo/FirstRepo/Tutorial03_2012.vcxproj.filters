@@ -9,9 +9,12 @@
       <UniqueIdentifier>{2c3d4c8c-5d1a-459a-a05a-a4e4b608a44e}</UniqueIdentifier>
       <Extensions>fx;fxh;hlsl</Extensions>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Tutorial03.cpp" />
+    <Filter Include="Resource Files\Objects">
+      <UniqueIdentifier>{695df074-9f4a-4b20-9ed8-4075168019ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Objects">
+      <UniqueIdentifier>{8e37ab85-52f9-4aa1-9eb5-ab6c421fc6ea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <CLInclude Include="resource.h">
@@ -20,16 +23,28 @@
     <ResourceCompile Include="Tutorial03.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+    <ClInclude Include="RGB_Main.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.h">
+      <Filter>Resource Files\Objects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Tutorial03.fx">
+    <FxCompile Include="RGB_PSandVS.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Tutorial03_PS.hlsl">
+    <FxCompile Include="RGB_PS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Tutorial03_VS.hlsl">
+    <FxCompile Include="RGB_VS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="RGB_Main.cpp" />
+    <ClCompile Include="Player.cpp">
+      <Filter>Objects</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

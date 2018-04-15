@@ -1,43 +1,5 @@
-//--------------------------------------------------------------------------------------
-// File: Tutorial03.cpp
-//
-// This application displays a triangle using Direct3D 11
-//
-// http://msdn.microsoft.com/en-us/library/windows/apps/ff729720.aspx
-//
-// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
-// PARTICULAR PURPOSE.
-//
-// Copyright (c) Microsoft Corporation. All rights reserved.
-//--------------------------------------------------------------------------------------
-#include <windows.h>
-#include <d3d11_1.h>
-#include <d3dcompiler.h>
-#include <directxmath.h>
-#include <directxcolors.h>
-#include "resource.h"
 
-using namespace DirectX;
-
-//--------------------------------------------------------------------------------------
-// Structures
-//--------------------------------------------------------------------------------------
-struct SimpleVertex
-{
-    XMFLOAT3 Pos;
-	XMFLOAT4 Color;
-};
-
-struct ConstantBuffer
-{
-	XMMATRIX world;
-	XMMATRIX view;
-	XMMATRIX projection;
-
-};
-
+#include "RGB_Main.h"
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -69,16 +31,14 @@ XMMATRIX				theView;
 XMMATRIX				theProjection;
 
 
-
 //--------------------------------------------------------------------------------------
 // Forward declarations
 //--------------------------------------------------------------------------------------
-HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow );
+HRESULT InitWindow(HINSTANCE hInstance, int nCmdShow);
 HRESULT InitDevice();
 void CleanupDevice();
-LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
+LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 void Render();
-
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -143,7 +103,8 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
 
     // Create window
     g_hInst = hInstance;
-    RECT rc = { 0, 0, 800, 600 };
+    RECT rc = { 0, 0, 800, 600 }; //Window Parameters
+
     AdjustWindowRect( &rc, WS_OVERLAPPEDWINDOW, FALSE );
     g_hWnd = CreateWindow( L"TutorialWindowClass", L"Direct3D 11 Tutorial 3: Shaders",
                            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
@@ -202,6 +163,7 @@ HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR sz
 //--------------------------------------------------------------------------------------
 HRESULT InitDevice()
 {
+	//Initialise Window and Such
     HRESULT hr = S_OK;
 
     RECT rc;
@@ -383,7 +345,7 @@ HRESULT InitDevice()
 
     // Compile the vertex shader
     ID3DBlob* pVSBlob = nullptr;
-    hr = CompileShaderFromFile( L"Tutorial03.fx", "VS", "vs_4_0", &pVSBlob );
+    hr = CompileShaderFromFile( L"RGB_PSandVS.fx", "VS", "vs_4_0", &pVSBlob );
     if( FAILED( hr ) )
     {
         MessageBox( nullptr,
@@ -419,7 +381,7 @@ HRESULT InitDevice()
 
 	// Compile the pixel shader
 	ID3DBlob* pPSBlob = nullptr;
-    hr = CompileShaderFromFile( L"Tutorial03.fx", "PS", "ps_4_0", &pPSBlob );
+    hr = CompileShaderFromFile( L"RGB_PSandVS.fx", "PS", "ps_4_0", &pPSBlob );
     if( FAILED( hr ) )
     {
         MessageBox( nullptr,
@@ -443,7 +405,7 @@ HRESULT InitDevice()
 
 		// EXTRA
 
-		{ XMFLOAT3(-1.25f, 0.75f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
+		// { XMFLOAT3(-1.25f, 0.75f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
 
 
 
@@ -457,7 +419,7 @@ HRESULT InitDevice()
     D3D11_BUFFER_DESC bd;
 	ZeroMemory( &bd, sizeof(bd) );
     bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof( SimpleVertex ) * 5; //Set Multiplier to how many VERTICES
+    bd.ByteWidth = sizeof( SimpleVertex ) * 4; //Set Multiplier to how many VERTICES
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
     D3D11_SUBRESOURCE_DATA InitData;
@@ -478,10 +440,10 @@ HRESULT InitDevice()
 	{
 		3, 0, 1,
 		2, 3, 1,
-		3, 4, 0,
+		// 3, 4, 0,
 	};
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(WORD) * 9;
+	bd.ByteWidth = sizeof(WORD) * 6;  //Set to Number of Indicies
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	InitData.pSysMem = indi;
@@ -594,7 +556,9 @@ void Render()
 
     // Clear the back buffer 
 
-    g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, Colors::MidnightBlue );
+    //g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, Colors::MidnightBlue );
+
+	g_pImmediateContext->ClearRenderTargetView(g_pRenderTargetView, Colors::Black);
 
 	//
 	// Clear the depth buffer to 1.0 (max depth)
@@ -609,13 +573,14 @@ void Render()
 	cb1.view = XMMatrixTranspose(theView);
 	cb1.projection = XMMatrixTranspose(theProjection);
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb1, 0, 0);
+	
 
 
     // Render a triangle
 	g_pImmediateContext->VSSetShader( g_pVertexShader, nullptr, 0 );
 	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // 0, Number of Buffers, Set Constant Buffer
 	g_pImmediateContext->PSSetShader( g_pPixelShader, nullptr, 0 );
-    g_pImmediateContext->DrawIndexed( 9, 0, 0 ); //Set to number of Draw Vertices for First Object. 
+    g_pImmediateContext->DrawIndexed( 6, 0, 0 ); //Set (x, 0, 0) to number of Draw Vertices for First Object. 
 
 	// Update Square 2 Variables
 
