@@ -17,7 +17,7 @@ using namespace std;
 struct SimpleVertex
 {
 	XMFLOAT3 Pos;
-	XMFLOAT4 Color;
+	//XMFLOAT4 Color;
 };
 
 struct ConstantBuffer
@@ -25,6 +25,7 @@ struct ConstantBuffer
 	XMMATRIX world;
 	XMMATRIX view;
 	XMMATRIX projection;
+	XMFLOAT4 Color;
 
 };
 

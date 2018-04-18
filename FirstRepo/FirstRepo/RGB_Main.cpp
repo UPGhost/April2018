@@ -29,6 +29,7 @@ XMMATRIX				theWorld1; //Translations, Scales, Spins, Etc.
 XMMATRIX				theWorld2;
 XMMATRIX				theView;
 XMMATRIX				theProjection;
+XMFLOAT4				theColor(1.0f, 1.0f, 1.0f, 1.0f); //Default Color
 
 
 //--------------------------------------------------------------------------------------
@@ -365,7 +366,7 @@ HRESULT InitDevice()
     D3D11_INPUT_ELEMENT_DESC layout[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		//{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 	UINT numElements = ARRAYSIZE( layout );
 
@@ -398,14 +399,19 @@ HRESULT InitDevice()
     // Create vertex buffer
     SimpleVertex vertices[] =
 	{
-		{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3( -0.5f, 1.0f, 1.0f ), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3( -0.5f, 0.5f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-		{ XMFLOAT3(-1.0f, 0.5f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
+		{ XMFLOAT3(-1.0f, 1.0f, 1.0f) }, //Pos (X, Y, Z), Color (R, G, B, A)
+		{ XMFLOAT3( -0.5f, 1.0f, 1.0f ) },
+		{ XMFLOAT3( -0.5f, 0.5f,  1.0f) },
+		{ XMFLOAT3(-1.0f, 0.5f,  1.0f), },
 
 		// EXTRA
 
 		// { XMFLOAT3(-1.25f, 0.75f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
+
+		//{ XMFLOAT3(-1.0f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) }, //Pos (X, Y, Z), Color (R, G, B, A)
+		//{ XMFLOAT3(-0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
+		//{ XMFLOAT3(-0.5f, 0.5f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
+		//{ XMFLOAT3(-1.0f, 0.5f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
 
 
 
@@ -548,11 +554,32 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 //--------------------------------------------------------------------------------------
 void Render()
 {
+	// Update our time
+	static float t = 0.0f;
+	if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
+	{
+		t += (float)XM_PI * 0.0125f;
+	}
+	else
+	{
+		static ULONGLONG timeStart = 0;
+		ULONGLONG timeCur = GetTickCount64();
+		if (timeStart == 0)
+			timeStart = timeCur;
+		t = (timeCur - timeStart) / 1000.0f;
+	}
+
 	//Setting Square 2 Parameters
 
-	XMMATRIX translate = XMMatrixTranslation(1.0f, 0.0f, 0.0f);
+	XMMATRIX translate = XMMatrixTranslation(1.0f, 0.0f, 0.0f); //MOVEMENT
+	
+	//XMMATRIX translate = XMMatrixTranslation(-2.0f+t/2, 0.0f, 1.0f); //MOVEMENT
 
 	theWorld2 = translate;
+
+	//Colors
+
+	
 
     // Clear the back buffer 
 
@@ -568,18 +595,26 @@ void Render()
 	// Update Object 1 Variables
 
 	ConstantBuffer cb1;
+	
 
 	cb1.world = XMMatrixTranspose(theWorld1);
 	cb1.view = XMMatrixTranspose(theView);
 	cb1.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 1.0f; theColor.y = 1.0f; theColor.z = 1.0f; theColor.w = 1.0f;
+	cb1.Color = theColor;
+
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb1, 0, 0);
-	
 
 
     // Render a triangle
 	g_pImmediateContext->VSSetShader( g_pVertexShader, nullptr, 0 );
-	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // 0, Number of Buffers, Set Constant Buffer
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
 	g_pImmediateContext->PSSetShader( g_pPixelShader, nullptr, 0 );
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
     g_pImmediateContext->DrawIndexed( 6, 0, 0 ); //Set (x, 0, 0) to number of Draw Vertices for First Object. 
 
 	// Update Square 2 Variables
@@ -589,6 +624,12 @@ void Render()
 	cb2.world = XMMatrixTranspose(theWorld2);
 	cb2.view = XMMatrixTranspose(theView);
 	cb2.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 0.0f; theColor.z = 1.0f; theColor.w = 1.0f;
+
+	cb2.Color = theColor;
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb2, 0, 0);
 
 	// Render 2nd Object
