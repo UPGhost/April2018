@@ -5,11 +5,15 @@
 #include <d3dcompiler.h>
 #include <directxmath.h>
 #include <directxcolors.h>
+#include <conio.h>
+#include <Keyboard.h>
 #include "resource.h"
 #include "iostream"
 
 using namespace DirectX;
 using namespace std;
+
+
 
 //--------------------------------------------------------------------------------------
 // Structures

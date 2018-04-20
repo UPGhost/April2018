@@ -25,11 +25,25 @@ ID3D11Buffer*           vertexBuffer = nullptr;
 ID3D11Buffer*			indexBuffer = nullptr;
 ID3D11Buffer*			constantBuffer = nullptr;
 
-XMMATRIX				theWorld1; //Translations, Scales, Spins, Etc.
-XMMATRIX				theWorld2;
+XMMATRIX				theWorldPlayer; //Translations, Scales, Spins, Etc.
+XMMATRIX				theWorldBlue;
+XMMATRIX				theWorldGreen;
+XMMATRIX				theWorldRed;
 XMMATRIX				theView;
 XMMATRIX				theProjection;
 XMFLOAT4				theColor(1.0f, 1.0f, 1.0f, 1.0f); //Default Color
+
+char					ch = 0; //Get Keyboard Input
+bool					pause = false;
+float					pauseTime;
+float					currentTime;
+
+//Keyboard Check
+std::unique_ptr<Keyboard> keyboard = std::make_unique<Keyboard>();;
+
+//Tracker for if key was JUST pressed or JUST released
+Keyboard::KeyboardStateTracker tracker;
+
 
 
 //--------------------------------------------------------------------------------------
@@ -476,8 +490,10 @@ HRESULT InitDevice()
 
 	//Initialise World Matrix
 
-	theWorld1 = XMMatrixIdentity();
-	theWorld2 = XMMatrixIdentity();
+	theWorldPlayer = XMMatrixIdentity();
+	theWorldRed = XMMatrixIdentity();
+	theWorldGreen = XMMatrixIdentity();
+	theWorldBlue = XMMatrixIdentity();
 
 	//View
 	XMVECTOR TiltAndDistance =	 XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f); //0.0f, Tilting Up and Down, Distance, 0.0f
@@ -529,6 +545,23 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 
     switch( message )
     {
+
+	case WM_ACTIVATEAPP:
+		Keyboard::ProcessMessage(message, wParam, lParam);
+		break;
+
+	case WM_KEYDOWN:
+
+	case WM_SYSKEYDOWN:
+		Keyboard::ProcessMessage(message, wParam, lParam);
+		break;
+
+	case WM_KEYUP:
+
+	case WM_SYSKEYUP:
+		Keyboard::ProcessMessage(message, wParam, lParam);
+		break;
+
     case WM_PAINT:
         hdc = BeginPaint( hWnd, &ps );
         EndPaint( hWnd, &ps );
@@ -545,6 +578,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
         return DefWindowProc( hWnd, message, wParam, lParam );
     }
 
+
+
     return 0;
 }
 
@@ -554,32 +589,150 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 //--------------------------------------------------------------------------------------
 void Render()
 {
+	//Keyboard Get
+	auto kb = keyboard->GetState();
+
+	// kb.W = W . means W is down
+
+	//Keyboard Tracker
+	auto state = keyboard->GetState();
+	tracker.Update(state);
+
+	// tracker.pressed.Space . means Space was JUST pressed
+
+	// tracker.IskeyReleased( VK_F1) . means F1 key was JUST released 
+
 	// Update our time
 	static float t = 0.0f;
-	if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
+
+
+		//Time Stuff
+
+	/*if (g_driverType == D3D_DRIVER_TYPE_REFERENCE)
+		{
+			t += (float)XM_PI * 0.0125f - currentTime;
+		}
+
+		else
+		{*/
+
+	//CONTROLS TIME, more than the first lines 
+
+	static ULONGLONG timeStart = 0;
+	ULONGLONG timeCur = GetTickCount64();
+	if (timeStart == 0)
 	{
-		t += (float)XM_PI * 0.0125f;
+		timeStart = timeCur;
+	}
+	t = ((timeCur - timeStart) / 1000.0f);
+	
+		
+
+	if (pause == true)
+	{
+		
+		currentTime = t - pauseTime;
+
+		//THIS LINE ACTUALLY PAUSES
+		t = pauseTime;
 	}
 	else
 	{
-		static ULONGLONG timeStart = 0;
-		ULONGLONG timeCur = GetTickCount64();
-		if (timeStart == 0)
-			timeStart = timeCur;
-		t = (timeCur - timeStart) / 1000.0f;
+		//
+		t -= currentTime;
+	}
+	
+		// PAUSING
+
+	if (tracker.pressed.Escape)
+	{
+		if (pause == false)
+		{
+			pause = true;
+			pauseTime = t;
+		}
+		else
+		{
+			pause = false;
+		}
+	}
+	
+	//Way Pausing Works
+
+	/*
+	When the Game is Paused, take the Current Time and save it under: 'pauseTime'
+
+	'pauseTime = t;'
+
+	Use this to get the value between the ongoing time, 't', and the amount of time the game has been 
+	paused for.
+
+	To do this, do: 't - pauseTime = currentTime;'
+
+	Then when the game is unpaused, take the final value for the amount of time the game has been paused
+	'currentTime' and minus it from the ongoing time 't' to get the Game time.
+
+	This looks like: 't -= currentTime;'
+	*/
+
+	//SET PARAMETERS
+
+	//Set Player Parameters
+
+	XMMATRIX translatePlayer = XMMatrixTranslation(1.0f, -2.5f, -1.9f);
+	theWorldPlayer = translatePlayer;
+
+	//Setting Blue Square Parameters
+
+	XMMATRIX translateBlue = XMMatrixTranslation(1.0f, 4.0f - t, -2.0f); //MOVEMENT	Use T to Move based on Time.
+	theWorldBlue = translateBlue;
+
+	//Setting Green Triangle Parameters
+
+	XMMATRIX translateGreen = XMMatrixTranslation(-2.0f, 6.0f - t, -2.0f); //MOVEMENT	Use T to Move based on Time.
+	theWorldGreen = translateGreen;
+
+	//Setting Red Triangle Parameters
+
+	XMMATRIX translateRed = XMMatrixTranslation(4.0f, 8.0f - t, -2.0f); //MOVEMENT	Use T to Move based on Time.
+	theWorldRed = translateRed;
+
+
+	///INPUTS
+
+
+	// PLAYER MOVEMENT
+
+	if (pause == false)
+	{
+		if (kb.Left)
+		{
+
+		}
+
+		if (kb.Right)
+		{
+
+		}
+
+		if (kb.Z)
+		{
+
+		}
+
+		if (kb.X)
+		{
+
+		}
+
+		if (kb.C)
+		{
+
+		}
 	}
 
-	//Setting Square 2 Parameters
 
-	XMMATRIX translate = XMMatrixTranslation(1.0f, 0.0f, 0.0f); //MOVEMENT
-	
-	//XMMATRIX translate = XMMatrixTranslation(-2.0f+t/2, 0.0f, 1.0f); //MOVEMENT
 
-	theWorld2 = translate;
-
-	//Colors
-
-	
 
     // Clear the back buffer 
 
@@ -590,14 +743,15 @@ void Render()
 	//
 	// Clear the depth buffer to 1.0 (max depth)
 	//
+
 	g_pImmediateContext->ClearDepthStencilView(depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-	// Update Object 1 Variables
+	// Update Player Variables
 
 	ConstantBuffer cb1;
 	
 
-	cb1.world = XMMatrixTranspose(theWorld1);
+	cb1.world = XMMatrixTranspose(theWorldPlayer);
 	cb1.view = XMMatrixTranspose(theView);
 	cb1.projection = XMMatrixTranspose(theProjection);
 
@@ -617,11 +771,11 @@ void Render()
 
     g_pImmediateContext->DrawIndexed( 6, 0, 0 ); //Set (x, 0, 0) to number of Draw Vertices for First Object. 
 
-	// Update Square 2 Variables
+	// Update Blue Square Variables
 
 	ConstantBuffer cb2;
 
-	cb2.world = XMMatrixTranspose(theWorld2);
+	cb2.world = XMMatrixTranspose(theWorldBlue);
 	cb2.view = XMMatrixTranspose(theView);
 	cb2.projection = XMMatrixTranspose(theProjection);
 
@@ -632,9 +786,47 @@ void Render()
 	cb2.Color = theColor;
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb2, 0, 0);
 
-	// Render 2nd Object
+	// Render Blue Object
 
 	g_pImmediateContext->DrawIndexed(6, 0, 0); //Set to number of Draw Vertices for First Object. 
+
+	//GREEN OBJECT
+
+	ConstantBuffer cb3;
+
+	cb3.world = XMMatrixTranspose(theWorldGreen);
+	cb3.view = XMMatrixTranspose(theView);
+	cb3.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 1.0f; theColor.z = 0.0f; theColor.w = 1.0f;
+
+	cb3.Color = theColor;
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb3, 0, 0);
+
+	// Render Green Object
+
+	g_pImmediateContext->DrawIndexed(3, 0, 0); //Set to number of Draw Vertices for First Object. 
+
+	//RED OBJECT
+
+	ConstantBuffer cb4;
+
+	cb4.world = XMMatrixTranspose(theWorldRed);
+	cb4.view = XMMatrixTranspose(theView);
+	cb4.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 1.0f; theColor.y = 0.0f; theColor.z = 0.0f; theColor.w = 1.0f;
+
+	cb4.Color = theColor;
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb4, 0, 0);
+
+	// Render Green Object
+
+	g_pImmediateContext->DrawIndexed(3, 3, 0); //Set to number of Draw Vertices for First Object. 
 
 
 	
