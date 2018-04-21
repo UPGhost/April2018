@@ -29,8 +29,15 @@ XMMATRIX				theWorldPlayer; //Translations, Scales, Spins, Etc.
 XMMATRIX				theWorldBlue;
 XMMATRIX				theWorldGreen;
 XMMATRIX				theWorldRed;
+
+XMMATRIX				theWorldPlayerLives1; //Player Lives
+XMMATRIX				theWorldPlayerLives2;
+XMMATRIX				theWorldPlayerLives3;
+
+//Camera
 XMMATRIX				theView;
 XMMATRIX				theProjection;
+
 XMFLOAT4				theColor(1.0f, 1.0f, 1.0f, 1.0f); //Default Color
 
 char					ch = 0; //Get Keyboard Input
@@ -38,14 +45,20 @@ bool					pause = false;
 float					pauseTime;
 float					currentTime;
 
+float					colourChangeTime;
+float					gameOverTime;
 
+float					lastDigitOfT;
 
+//COLUMNS
+
+float column[3] = { -2.0f, 1.0f, 4.0f };
 
 //PLAYER
 
 //Player Parameters
 
-float xPlayerPos = 1.0f;
+float xPlayerPos = column[1];
 float yPlayerPos = -2.5f;
 
 
@@ -53,7 +66,12 @@ float playerRed = 1.0f;
 float playerGreen = 1.0f;
 float playerBlue = 1.0f;
 
-float playerPoints;
+int playerPoints = 0;
+float playerFailCount = 0.0f;
+
+float playerLife1 = 1.0f;
+float playerLife2 = 1.0f;
+float playerLife3 = 1.0f;
 
 //Player Check
 
@@ -63,9 +81,9 @@ bool buttonPressed = false;
 
 //RGB Shape Parameters
 
-float xRedPos = -2.0f;
-float xGreenPos = 1.0f;
-float xBluePos = 4.0f;
+float xRedPos = column[0];
+float xGreenPos = column[1];
+float xBluePos = column[2];
 
 float yRedPos = 8.0f;
 float yGreenPos = 6.0f;
@@ -83,6 +101,10 @@ float redSpeedMultiplier = 2.0f;
 float greenSpeedMultiplier = 2.0f;
 float blueSpeedMultiplier = 2.0f;
 
+//Game Parameters
+
+bool gameOver = false;
+bool gameFinished = false;
 
 //Keyboard Check
 std::unique_ptr<Keyboard> keyboard = std::make_unique<Keyboard>();;
@@ -90,7 +112,8 @@ std::unique_ptr<Keyboard> keyboard = std::make_unique<Keyboard>();;
 //Tracker for if key was JUST pressed or JUST released
 Keyboard::KeyboardStateTracker tracker;
 
-
+//Score Count
+std::string playerScore = std::to_string(playerPoints);
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -536,10 +559,14 @@ HRESULT InitDevice()
 
 	//Initialise World Matrix
 
+	/*
 	theWorldPlayer = XMMatrixIdentity();
 	theWorldRed = XMMatrixIdentity();
 	theWorldGreen = XMMatrixIdentity();
 	theWorldBlue = XMMatrixIdentity();
+
+	theWorldPlayerLives1 = XMMatrixIdentity(), theWorldPlayerLives2 = XMMatrixIdentity(), theWorldPlayerLives3 = XMMatrixIdentity();
+	*/
 
 	//View
 	XMVECTOR TiltAndDistance =	 XMVectorSet(0.0f, 1.0f, -5.0f, 0.0f); //0.0f, Tilting Up and Down, Distance, 0.0f
@@ -589,6 +616,18 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
     PAINTSTRUCT ps;
     HDC hdc;
 
+	if (gameOver == true)
+	{
+		MessageBoxA(hWnd, playerScore.c_str(), "RGB - Your Score!", MB_OKCANCEL) == IDOK;
+
+		if (MessageBox(hWnd, L"Game Over! Thanks for Playing!" , L"RGB - The Game", MB_OKCANCEL) == IDOK)
+		{
+			DestroyWindow(hWnd);
+		}
+
+		gameFinished = false;
+	}
+
     switch( message )
     {
 
@@ -613,6 +652,23 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
         EndPaint( hWnd, &ps );
         break;
 
+	case WM_CLOSE:
+
+		if (gameOver == true)
+		{
+			if (MessageBox(hWnd, L"Game Over! Quit RGB?", L"RGB - The Game", MB_OKCANCEL) == IDOK)
+			{
+				DestroyWindow(hWnd);
+			}
+		}
+		else
+		{
+			DestroyWindow(hWnd);
+		}
+	
+		return 0;
+
+		
     case WM_DESTROY:
         PostQuitMessage( 0 );
         break;
@@ -672,7 +728,14 @@ void Render()
 	}
 	t = ((timeCur - timeStart) / 1000.0f);
 	
-	
+
+
+	lastDigitOfT = timeCur % 10;
+
+	//for (int x; x++; x = 9)
+	//{
+
+	//}
 
 	if (pause == true)
 	{
@@ -729,17 +792,17 @@ void Render()
 
 	if (pause == false)
 	{
-		if (tracker.pressed.Left && tooFarLeft == false) //Left
+		if (tracker.pressed.Left && tooFarLeft == false) //LEFT
 		{
 			xPlayerPos -= 3.0f;
 		}
 
-		if (tracker.pressed.Right && tooFarRight == false) //Right
+		if (tracker.pressed.Right && tooFarRight == false) //RIGHT
 		{
 			xPlayerPos += 3.0f;
 		}
 
-		if (tracker.pressed.Z && buttonPressed == false) //Red Button
+		if (tracker.pressed.Z && buttonPressed == false) //RED BUTTON
 		{
 			if (xPlayerPos == xRedPos && yCurrentRedPos <= yPlayerPos + 0.5f && yCurrentRedPos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
 			{
@@ -747,14 +810,21 @@ void Render()
 
 				yRedPos = yRedPos + 6.5f; //Multiplier is to Adjust/Fix Where it Fall Starts.
 
-				playerPoints += 1; //Add to Points
+				playerPoints += 1; //Add to Points		
+			}
+			else
+			{
+				playerFailCount += 1; //Add to Fail Count
 			}
 
+			playerRed = 1.0f, playerGreen = 0.0f, playerBlue = 0.0f;
+			colourChangeTime = t;
 
 			buttonPressed == true;
 		}
 
-		if (tracker.pressed.X && buttonPressed == false) //Green Button
+
+		if (tracker.pressed.X && buttonPressed == false) //GREEN BUTTON
 		{
 			if (xPlayerPos == xGreenPos && yCurrentGreenPos <= yPlayerPos + 0.5f && yCurrentGreenPos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
 			{
@@ -764,11 +834,19 @@ void Render()
 
 				playerPoints += 1; //Add to Points
 			}
+			else
+			{
+				playerFailCount += 1; //Add to Fail Count
+			}
+
+			//Colour Change
+			playerRed = 0.0f, playerGreen = 1.0f, playerBlue = 0.0f;
+			colourChangeTime = t;
 
 			buttonPressed == true;
 		}
 
-		if (tracker.pressed.C && buttonPressed == false) //Blue Button
+		if (tracker.pressed.C && buttonPressed == false) //BLUE BUTTON
 		{
 			if (xPlayerPos == xBluePos && yCurrentBluePos <= yPlayerPos + 0.5f && yCurrentBluePos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
 			{
@@ -778,6 +856,13 @@ void Render()
 
 				playerPoints += 1; //Add to Points
 			}
+			else
+			{
+				playerFailCount += 1; //Add to Fail Count
+			}
+
+			playerRed = 0.0f, playerGreen = 0.0f, playerBlue = 1.0f;
+			colourChangeTime = t;
 
 			buttonPressed == true;
 		}
@@ -789,7 +874,7 @@ void Render()
 
 	//Check Player Location
 
-	if (xPlayerPos <= -2.0f)
+	if (xPlayerPos <= column[0])
 	{
 		tooFarLeft = true;
 	}
@@ -798,7 +883,7 @@ void Render()
 		tooFarLeft = false;
 	}
 
-	if (xPlayerPos >= 4.0f)
+	if (xPlayerPos >= column[2])
 	{
 		tooFarRight = true;
 	}
@@ -808,6 +893,40 @@ void Render()
 	}
 
 	//Lock in Positions
+
+	//RESET PLAYER COLOUR
+
+	if (t - colourChangeTime >= 0.2)
+	{
+		playerRed = 1.0f, playerGreen = 1.0f, playerBlue = 1.0f;
+	}
+
+	//PLAYER LIFE LOST
+
+	if (playerFailCount > 0.0f)
+	{
+		playerLife1 = 0.0f;
+	}
+
+	if (playerFailCount > 1.0f)
+	{
+		playerLife2 = 0.0f;
+	}
+
+	if (playerFailCount > 2.0f)
+	{
+		playerLife3 = 0.0f;
+		gameOverTime = t;
+		gameOver = true;
+	}
+
+	//GAME OVER
+
+
+	if (t - gameOverTime >= 0.2 && gameOverTime != 0) //After x Number of Seconds, Close Game
+	{
+		gameFinished = true;
+	}
 
 	//Set Player Parameters
 
@@ -835,6 +954,16 @@ void Render()
 	XMMATRIX translateRed = XMMatrixTranslation(xRedPos, yCurrentRedPos, -2.0f); //MOVEMENT	Use T to Move based on Time.
 	theWorldRed = translateRed;
 
+
+	//Set Player Lives Parameters
+	
+	XMMATRIX translateLives1 = XMMatrixTranslation(5.5f, 3.8f, -2.0f);
+	XMMATRIX translateLives2 = XMMatrixTranslation(5.5f, 3.1f, -2.0f);
+	XMMATRIX translateLives3 = XMMatrixTranslation(5.5f, 2.4f, -2.0f);
+
+	theWorldPlayerLives1 = translateLives1;
+	theWorldPlayerLives2 = translateLives2;
+	theWorldPlayerLives3 = translateLives3;
 	
 	
 	
@@ -862,7 +991,7 @@ void Render()
 
 	//Colors
 
-	theColor.x = 1.0f; theColor.y = 1.0f; theColor.z = 1.0f; theColor.w = 1.0f;
+	theColor.x = playerRed; theColor.y = playerGreen; theColor.z = playerBlue; theColor.w = 1.0f;
 	cb1.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb1, 0, 0);
@@ -876,7 +1005,7 @@ void Render()
 
     g_pImmediateContext->DrawIndexed( 6, 0, 0 ); //Set (x, 0, 0) to number of Draw Vertices for First Object. 
 
-	// Update Blue Square Variables
+	// BLUE OBJECT
 
 	ConstantBuffer cb2;
 
@@ -933,8 +1062,84 @@ void Render()
 
 	g_pImmediateContext->DrawIndexed(3, 3, 0); //Set to number of Draw Vertices for First Object. 
 
+	//LIVES
 
-	
+	//Life 1
+
+	ConstantBuffer cb5;
+
+	cb5.world = XMMatrixTranspose(theWorldPlayerLives1);
+	cb5.view = XMMatrixTranspose(theView);
+	cb5.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = playerLife1; theColor.y = playerLife1; theColor.z = playerLife1; theColor.w = 1.0f;
+	cb5.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb5, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 0, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//Life 2
+
+	ConstantBuffer cb6;
+
+	cb6.world = XMMatrixTranspose(theWorldPlayerLives2);
+	cb6.view = XMMatrixTranspose(theView);
+	cb6.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = playerLife2; theColor.y = playerLife2; theColor.z = playerLife2; theColor.w = 1.0f;
+	cb6.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb6, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 0, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//Life 3
+
+	ConstantBuffer cb7;
+
+	cb7.world = XMMatrixTranspose(theWorldPlayerLives3);
+	cb7.view = XMMatrixTranspose(theView);
+	cb7.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = playerLife3; theColor.y = playerLife3; theColor.z = playerLife3; theColor.w = 1.0f;
+	cb7.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb7, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 0, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+
+	//Check Score
+
+	//Score Count
+	playerScore = std::to_string(playerPoints);
+
+
 
     // Present the information rendered to the back buffer to the front buffer (the screen)
     g_pSwapChain->Present( 0, 0 );

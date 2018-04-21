@@ -7,6 +7,8 @@
 #include <directxcolors.h>
 #include <conio.h>
 #include <Keyboard.h>
+#include <cstdlib> 
+#include <string>
 #include "resource.h"
 #include "iostream"
 
