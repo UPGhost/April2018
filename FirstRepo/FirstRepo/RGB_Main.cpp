@@ -38,6 +38,52 @@ bool					pause = false;
 float					pauseTime;
 float					currentTime;
 
+
+
+
+//PLAYER
+
+//Player Parameters
+
+float xPlayerPos = 1.0f;
+float yPlayerPos = -2.5f;
+
+
+float playerRed = 1.0f;
+float playerGreen = 1.0f;
+float playerBlue = 1.0f;
+
+float playerPoints;
+
+//Player Check
+
+bool tooFarLeft = false;
+bool tooFarRight = false;
+bool buttonPressed = false;
+
+//RGB Shape Parameters
+
+float xRedPos = -2.0f;
+float xGreenPos = 1.0f;
+float xBluePos = 4.0f;
+
+float yRedPos = 8.0f;
+float yGreenPos = 6.0f;
+float yBluePos = 4.0f;
+
+float yCurrentRedPos;
+float yCurrentGreenPos;
+float yCurrentBluePos;
+
+
+float redSuccess = 1.0f;
+float redFallTime;
+
+float redSpeedMultiplier = 2.0f;
+float greenSpeedMultiplier = 2.0f;
+float blueSpeedMultiplier = 2.0f;
+
+
 //Keyboard Check
 std::unique_ptr<Keyboard> keyboard = std::make_unique<Keyboard>();;
 
@@ -626,7 +672,7 @@ void Render()
 	}
 	t = ((timeCur - timeStart) / 1000.0f);
 	
-		
+	
 
 	if (pause == true)
 	{
@@ -656,6 +702,8 @@ void Render()
 			pause = false;
 		}
 	}
+
+
 	
 	//Way Pausing Works
 
@@ -675,64 +723,121 @@ void Render()
 	This looks like: 't -= currentTime;'
 	*/
 
-	//SET PARAMETERS
+	//INPUTS
+
+	//Player Movement
+
+	if (pause == false)
+	{
+		if (tracker.pressed.Left && tooFarLeft == false) //Left
+		{
+			xPlayerPos -= 3.0f;
+		}
+
+		if (tracker.pressed.Right && tooFarRight == false) //Right
+		{
+			xPlayerPos += 3.0f;
+		}
+
+		if (tracker.pressed.Z && buttonPressed == false) //Red Button
+		{
+			if (xPlayerPos == xRedPos && yCurrentRedPos <= yPlayerPos + 0.5f && yCurrentRedPos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
+			{
+				//redSpeedMultiplier = redSpeedMultiplier*1.2f;		
+
+				yRedPos = yRedPos + 6.5f; //Multiplier is to Adjust/Fix Where it Fall Starts.
+
+				playerPoints += 1; //Add to Points
+			}
+
+
+			buttonPressed == true;
+		}
+
+		if (tracker.pressed.X && buttonPressed == false) //Green Button
+		{
+			if (xPlayerPos == xGreenPos && yCurrentGreenPos <= yPlayerPos + 0.5f && yCurrentGreenPos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
+			{
+				yGreenPos = yGreenPos + 6.5f;
+
+				//greenSpeedMultiplier = greenSpeedMultiplier*1.2f; //Multiplier is to Adjust/Fix Where it Fall Starts.	
+
+				playerPoints += 1; //Add to Points
+			}
+
+			buttonPressed == true;
+		}
+
+		if (tracker.pressed.C && buttonPressed == false) //Blue Button
+		{
+			if (xPlayerPos == xBluePos && yCurrentBluePos <= yPlayerPos + 0.5f && yCurrentBluePos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
+			{
+				//blueSpeedMultiplier = blueSpeedMultiplier*1.2f; //Multiplier is to Adjust/Fix Where it Fall Starts.
+
+				yBluePos = yBluePos + 6.5f;
+
+				playerPoints += 1; //Add to Points
+			}
+
+			buttonPressed == true;
+		}
+	}
+
+	//Button Check Released
+
+	buttonPressed = false;
+
+	//Check Player Location
+
+	if (xPlayerPos <= -2.0f)
+	{
+		tooFarLeft = true;
+	}
+	else
+	{
+		tooFarLeft = false;
+	}
+
+	if (xPlayerPos >= 4.0f)
+	{
+		tooFarRight = true;
+	}
+	else
+	{
+		tooFarRight = false;
+	}
+
+	//Lock in Positions
 
 	//Set Player Parameters
 
-	XMMATRIX translatePlayer = XMMatrixTranslation(1.0f, -2.5f, -1.9f);
+	XMMATRIX translatePlayer = XMMatrixTranslation(xPlayerPos, yPlayerPos, -1.99f);
 	theWorldPlayer = translatePlayer;
 
 	//Setting Blue Square Parameters
 
-	XMMATRIX translateBlue = XMMatrixTranslation(1.0f, 4.0f - t, -2.0f); //MOVEMENT	Use T to Move based on Time.
+	yCurrentBluePos = yBluePos - t * blueSpeedMultiplier;
+
+	XMMATRIX translateBlue = XMMatrixTranslation(xBluePos, yCurrentBluePos, -2.0f); //MOVEMENT	Use T to Move based on Time.
 	theWorldBlue = translateBlue;
 
 	//Setting Green Triangle Parameters
 
-	XMMATRIX translateGreen = XMMatrixTranslation(-2.0f, 6.0f - t, -2.0f); //MOVEMENT	Use T to Move based on Time.
+	yCurrentGreenPos = yGreenPos - t * greenSpeedMultiplier;
+
+	XMMATRIX translateGreen = XMMatrixTranslation(xGreenPos, yCurrentGreenPos, -2.0f); //MOVEMENT	Use T to Move based on Time.
 	theWorldGreen = translateGreen;
 
 	//Setting Red Triangle Parameters
 
-	XMMATRIX translateRed = XMMatrixTranslation(4.0f, 8.0f - t, -2.0f); //MOVEMENT	Use T to Move based on Time.
+	yCurrentRedPos = yRedPos - t * redSpeedMultiplier;
+
+	XMMATRIX translateRed = XMMatrixTranslation(xRedPos, yCurrentRedPos, -2.0f); //MOVEMENT	Use T to Move based on Time.
 	theWorldRed = translateRed;
 
-
-	///INPUTS
-
-
-	// PLAYER MOVEMENT
-
-	if (pause == false)
-	{
-		if (kb.Left)
-		{
-
-		}
-
-		if (kb.Right)
-		{
-
-		}
-
-		if (kb.Z)
-		{
-
-		}
-
-		if (kb.X)
-		{
-
-		}
-
-		if (kb.C)
-		{
-
-		}
-	}
-
-
-
+	
+	
+	
 
     // Clear the back buffer 
 
