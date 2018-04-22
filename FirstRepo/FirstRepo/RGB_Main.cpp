@@ -107,8 +107,8 @@ float xRedPos = column[0];
 float xGreenPos = column[1];
 float xBluePos = column[2];
 
-float yRedPos = 8.0f;
-float yGreenPos = 6.0f;
+float yRedPos = 15.0f;
+float yGreenPos = 4.0f;
 float yBluePos = 4.0f;
 
 float yCurrentRedPos;
@@ -120,8 +120,8 @@ float redSuccess = 1.0f;
 float redFallTime;
 
 float redSpeedMultiplier = 2.5f;
-float greenSpeedMultiplier = 2.5f;
-float blueSpeedMultiplier = 2.5f;
+float greenSpeedMultiplier = 2.0f;
+float blueSpeedMultiplier = 1.5f;
 
 //Game Parameters
 
@@ -212,7 +212,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     RECT rc = { 0, 0, 800, 600 }; //Window Parameters
 
     AdjustWindowRect( &rc, WS_OVERLAPPEDWINDOW, FALSE );
-    g_hWnd = CreateWindow( L"TutorialWindowClass", L"Direct3D 11 Tutorial 3: Shaders",
+    g_hWnd = CreateWindow( L"TutorialWindowClass", L"RGB - The Game",
                            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
                            nullptr );
@@ -745,7 +745,11 @@ void Render()
 	if (gameLoaded == true)
 	{
 		MessageBox(NULL,
-			L"How to Play: Press the Left and Right Arrow Keys to Move. When the Shape falls on the White Player Square, press the corresponding button to Colour to rack up score: Z for Red, X for Green, C for Blue. You can also pause with ESC. You've got 3 Lives, Good Luck!",
+			L"How to Play: Press the Left and Right Arrow Keys to Move. When the Coloured Shapes falls on the White Player Square, press the corresponding button to Colour to rack up score: Z for Red, X for Green, C for Blue.",
+			L"RGB - The Game", MB_OKCANCEL) == IDOK;
+
+		MessageBox(NULL,
+			L"How to Play Continued: Make sure not to let the shapes fall below the White line, miss-time your button press or press the wrong button for the colour or you'll lose a Life! You can also pause with ESC. You've got 3 Lives, Good Luck!",
 			L"RGB - The Game", MB_OKCANCEL) == IDOK;
 	}
 	gameLoaded = false;
@@ -796,7 +800,7 @@ void Render()
 
 	if (lastDigitOfT <= 2)
 	{
-		if (column0TooManyTimes < 2) //Column[0]
+		if (column0TooManyTimes < 1) //Column[0]
 		{
 			randomColumn = column[0];
 			column0TooManyTimes += 1;
@@ -809,20 +813,20 @@ void Render()
 	}
 	else if (lastDigitOfT > 2 || lastDigitOfT < 6)
 	{
-		if (column1TooManyTimes < 2) //Column[1]
+		if (column1TooManyTimes < 1) //Column[1]
 		{
 			randomColumn = column[1];
 			column1TooManyTimes += 1;
 		} 
 		else //Check Random Number Doesn't Choose the same Column over and Over.
 		{
-			randomColumn = column[0];
+			randomColumn = column[2];
 			column1TooManyTimes = 0;
 		}
 	}
 	else if (lastDigitOfT >= 6)
 	{
-		if (column1TooManyTimes < 2) //Column[2]
+		if (column1TooManyTimes < 1) //Column[2]
 		{
 			randomColumn = column[2];
 			column2TooManyTimes += 1;
@@ -1333,7 +1337,7 @@ void Render()
 
 	//Colors
 
-	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f; //All Border Colours
 	cb9.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb9, 0, 0);
@@ -1355,7 +1359,6 @@ void Render()
 
 	//Colors
 
-	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
 	cb10.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb10, 0, 0);
@@ -1378,7 +1381,6 @@ void Render()
 
 	//Colors
 
-	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
 	cb11.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb11, 0, 0);
@@ -1401,7 +1403,6 @@ void Render()
 
 	//Colors
 
-	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
 	cb12.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb12, 0, 0);
@@ -1424,7 +1425,6 @@ void Render()
 
 	//Colors
 
-	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
 	cb13.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb13, 0, 0);
@@ -1447,7 +1447,6 @@ void Render()
 
 	//Colors
 
-	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
 	cb14.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb14, 0, 0);
