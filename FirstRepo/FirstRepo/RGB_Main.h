@@ -11,6 +11,7 @@
 #include <string>
 #include "resource.h"
 #include "iostream"
+#include <ctime>
 
 using namespace DirectX;
 using namespace std;

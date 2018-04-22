@@ -34,6 +34,15 @@ XMMATRIX				theWorldPlayerLives1; //Player Lives
 XMMATRIX				theWorldPlayerLives2;
 XMMATRIX				theWorldPlayerLives3;
 
+XMMATRIX				theWorldThreshold; //Fall Fail Threshold
+
+XMMATRIX				theWorldBorderBottom; //Borders
+XMMATRIX				theWorldBorderTop;
+XMMATRIX				theWorldBorderColumnLeft;
+XMMATRIX				theWorldBorderColumnRight;
+XMMATRIX				theWorldBorderColumnLeftMiddle;
+XMMATRIX				theWorldBorderColumnRightMiddle;
+
 //Camera
 XMMATRIX				theView;
 XMMATRIX				theProjection;
@@ -41,14 +50,27 @@ XMMATRIX				theProjection;
 XMFLOAT4				theColor(1.0f, 1.0f, 1.0f, 1.0f); //Default Color
 
 char					ch = 0; //Get Keyboard Input
+
+//Pause Checks
 bool					pause = false;
 float					pauseTime;
 float					currentTime;
 
+//Mathematics
 float					colourChangeTime;
 float					gameOverTime;
 
 float					lastDigitOfT;
+float					randomColumn;
+
+float					column0TooManyTimes;
+float					column1TooManyTimes;
+float					column2TooManyTimes;
+
+
+//Instructions for Game Start Up
+
+bool					gameLoaded = true;
 
 //COLUMNS
 
@@ -97,9 +119,9 @@ float yCurrentBluePos;
 float redSuccess = 1.0f;
 float redFallTime;
 
-float redSpeedMultiplier = 2.0f;
-float greenSpeedMultiplier = 2.0f;
-float blueSpeedMultiplier = 2.0f;
+float redSpeedMultiplier = 2.5f;
+float greenSpeedMultiplier = 2.5f;
+float blueSpeedMultiplier = 2.5f;
 
 //Game Parameters
 
@@ -247,6 +269,9 @@ HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR sz
 //--------------------------------------------------------------------------------------
 HRESULT InitDevice()
 {
+	//Random Numbers based on Computer Time
+	void srand(int seed);
+
 	//Initialise Window and Such
     HRESULT hr = S_OK;
 
@@ -482,10 +507,33 @@ HRESULT InitDevice()
     // Create vertex buffer
     SimpleVertex vertices[] =
 	{
+		//Player Square + Colour Shapes 
+
 		{ XMFLOAT3(-1.0f, 1.0f, 1.0f) }, //Pos (X, Y, Z), Color (R, G, B, A)
 		{ XMFLOAT3( -0.5f, 1.0f, 1.0f ) },
 		{ XMFLOAT3( -0.5f, 0.5f,  1.0f) },
 		{ XMFLOAT3(-1.0f, 0.5f,  1.0f), },
+
+		//Thresh Hold
+		
+		{ XMFLOAT3(-6.0f, 0.1f, 1.0f) }, 
+		{ XMFLOAT3(6.0f, 0.1f, 1.0f) },
+		{ XMFLOAT3(6.0f, 0.0f,  1.0f) },
+		{ XMFLOAT3(-6.0f, 0.0f,  1.0f), },
+
+		//Border Width
+
+		{ XMFLOAT3(-6.0f, 0.5f, 1.0f) }, 
+		{ XMFLOAT3(6.0f, 0.5f, 1.0f) },
+		{ XMFLOAT3(6.0f, 0.0f,  1.0f) },
+		{ XMFLOAT3(-6.0f, 0.0f,  1.0f), },
+
+		//Border Column / Length
+
+		{ XMFLOAT3(-0.125f, 6.0f, 1.0f) },
+		{ XMFLOAT3(0.125f, 6.0f, 1.0f) },
+		{ XMFLOAT3(0.125f, -6.0f,  1.0f) },
+		{ XMFLOAT3(-0.125f, -6.0f,  1.0f), },
 
 		// EXTRA
 
@@ -495,20 +543,12 @@ HRESULT InitDevice()
 		//{ XMFLOAT3(-0.5f, 1.0f, 1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
 		//{ XMFLOAT3(-0.5f, 0.5f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
 		//{ XMFLOAT3(-1.0f, 0.5f,  1.0f), XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },
-
-
-
-        //XMFLOAT3( 0.5f, -0.5f, 0.5f ), 
-
-		//XMFLOAT3(1.0f, 0.5f, 0.5f),		
-		//XMFLOAT3(1.0f, -0.5f, 0.5f),
-		//XMFLOAT3(0.0f, -0.5f, 0.5f),
 		
     };
     D3D11_BUFFER_DESC bd;
 	ZeroMemory( &bd, sizeof(bd) );
     bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof( SimpleVertex ) * 4; //Set Multiplier to how many VERTICES
+    bd.ByteWidth = sizeof( SimpleVertex ) * 16; //Set Multiplier to how many VERTICES
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = 0;
     D3D11_SUBRESOURCE_DATA InitData;
@@ -529,10 +569,18 @@ HRESULT InitDevice()
 	{
 		3, 0, 1,
 		2, 3, 1,
-		// 3, 4, 0,
+
+		7, 4, 5,
+		6, 7, 5,
+
+		11, 8, 9,
+		10, 11, 9,
+
+		15, 12, 13,
+		14, 15, 13,
 	};
 	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(WORD) * 6;  //Set to Number of Indicies
+	bd.ByteWidth = sizeof(WORD) * 24;  //Set to Number of Indicies
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	bd.CPUAccessFlags = 0;
 	InitData.pSysMem = indi;
@@ -616,6 +664,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
     PAINTSTRUCT ps;
     HDC hdc;
 
+
 	if (gameOver == true)
 	{
 		MessageBoxA(hWnd, playerScore.c_str(), "RGB - Your Score!", MB_OKCANCEL) == IDOK;
@@ -691,6 +740,18 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 //--------------------------------------------------------------------------------------
 void Render()
 {
+
+	//Game Loaded, Explain Rules
+	if (gameLoaded == true)
+	{
+		MessageBox(NULL,
+			L"How to Play: Press the Left and Right Arrow Keys to Move. When the Shape falls on the White Player Square, press the corresponding button to Colour to rack up score: Z for Red, X for Green, C for Blue. You can also pause with ESC. You've got 3 Lives, Good Luck!",
+			L"RGB - The Game", MB_OKCANCEL) == IDOK;
+	}
+	gameLoaded = false;
+
+
+
 	//Keyboard Get
 	auto kb = keyboard->GetState();
 
@@ -729,9 +790,49 @@ void Render()
 	t = ((timeCur - timeStart) / 1000.0f);
 	
 
+	//Random Column for Falling Shapes
 
-	lastDigitOfT = timeCur % 10;
+	lastDigitOfT = rand() % 10 + 1;
 
+	if (lastDigitOfT <= 2)
+	{
+		if (column0TooManyTimes < 2) //Column[0]
+		{
+			randomColumn = column[0];
+			column0TooManyTimes += 1;
+		}
+		else //Check Random Number Doesn't Choose the same Column over and Over.
+		{
+			randomColumn = column[2];
+			column0TooManyTimes = 0;
+		}
+	}
+	else if (lastDigitOfT > 2 || lastDigitOfT < 6)
+	{
+		if (column1TooManyTimes < 2) //Column[1]
+		{
+			randomColumn = column[1];
+			column1TooManyTimes += 1;
+		} 
+		else //Check Random Number Doesn't Choose the same Column over and Over.
+		{
+			randomColumn = column[0];
+			column1TooManyTimes = 0;
+		}
+	}
+	else if (lastDigitOfT >= 6)
+	{
+		if (column1TooManyTimes < 2) //Column[2]
+		{
+			randomColumn = column[2];
+			column2TooManyTimes += 1;
+		}
+		else //Check Random Number Doesn't Choose the same Column over and Over.
+		{
+			randomColumn = column[1];
+			column2TooManyTimes = 0;
+		}
+	}
 	//for (int x; x++; x = 9)
 	//{
 
@@ -804,11 +905,15 @@ void Render()
 
 		if (tracker.pressed.Z && buttonPressed == false) //RED BUTTON
 		{
+			//If Pressed at the Right Time
+
 			if (xPlayerPos == xRedPos && yCurrentRedPos <= yPlayerPos + 0.5f && yCurrentRedPos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
 			{
 				//redSpeedMultiplier = redSpeedMultiplier*1.2f;		
 
 				yRedPos = yRedPos + 6.5f; //Multiplier is to Adjust/Fix Where it Fall Starts.
+
+				xRedPos = randomColumn; //Set Random Column for Falling
 
 				playerPoints += 1; //Add to Points		
 			}
@@ -826,14 +931,19 @@ void Render()
 
 		if (tracker.pressed.X && buttonPressed == false) //GREEN BUTTON
 		{
+			//If Pressed at the Right Time
+
 			if (xPlayerPos == xGreenPos && yCurrentGreenPos <= yPlayerPos + 0.5f && yCurrentGreenPos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
 			{
 				yGreenPos = yGreenPos + 6.5f;
 
 				//greenSpeedMultiplier = greenSpeedMultiplier*1.2f; //Multiplier is to Adjust/Fix Where it Fall Starts.	
 
+				xGreenPos = randomColumn; //Set Random Column for Falling
+
 				playerPoints += 1; //Add to Points
 			}
+			//Wrong Time
 			else
 			{
 				playerFailCount += 1; //Add to Fail Count
@@ -848,11 +958,15 @@ void Render()
 
 		if (tracker.pressed.C && buttonPressed == false) //BLUE BUTTON
 		{
+			//If Pressed at the Right Time
+
 			if (xPlayerPos == xBluePos && yCurrentBluePos <= yPlayerPos + 0.5f && yCurrentBluePos >= yPlayerPos - 0.5f) //If Player lines up with the Red Shape, and the Red Shape is within the Player Shape...
 			{
 				//blueSpeedMultiplier = blueSpeedMultiplier*1.2f; //Multiplier is to Adjust/Fix Where it Fall Starts.
 
 				yBluePos = yBluePos + 6.5f;
+
+				xBluePos = randomColumn; //Set Random Column for Falling
 
 				playerPoints += 1; //Add to Points
 			}
@@ -899,6 +1013,35 @@ void Render()
 	if (t - colourChangeTime >= 0.2)
 	{
 		playerRed = 1.0f, playerGreen = 1.0f, playerBlue = 1.0f;
+	}
+
+	//MISSED SHAPED
+	 
+	//Red Shape
+
+	if (yCurrentRedPos <= -3.5f)
+	{
+		playerFailCount += 1;
+		yRedPos += 7.0f;
+		xRedPos = randomColumn;
+	}
+
+	//Green Shape
+
+	if (yCurrentGreenPos <= -3.5f)
+	{
+		playerFailCount += 1;
+		yGreenPos += 7.0f;
+		xGreenPos = randomColumn;
+	}
+
+	//Blue Shape
+
+	if (yCurrentBluePos <= -3.5f)
+	{
+		playerFailCount += 1;
+		yBluePos += 7.0f;
+		xBluePos = randomColumn;
 	}
 
 	//PLAYER LIFE LOST
@@ -957,15 +1100,36 @@ void Render()
 
 	//Set Player Lives Parameters
 	
-	XMMATRIX translateLives1 = XMMatrixTranslation(5.5f, 3.8f, -2.0f);
-	XMMATRIX translateLives2 = XMMatrixTranslation(5.5f, 3.1f, -2.0f);
-	XMMATRIX translateLives3 = XMMatrixTranslation(5.5f, 2.4f, -2.0f);
+	XMMATRIX translateLives1 = XMMatrixTranslation(5.5f, 3.4f, -2.0f);
+	XMMATRIX translateLives2 = XMMatrixTranslation(5.5f, 2.7f, -2.0f);
+	XMMATRIX translateLives3 = XMMatrixTranslation(5.5f, 2.0f, -2.0f);
 
 	theWorldPlayerLives1 = translateLives1;
 	theWorldPlayerLives2 = translateLives2;
 	theWorldPlayerLives3 = translateLives3;
 	
-	
+	//Set Fall Threshold Parameters
+
+	XMMATRIX translateThreshold = XMMatrixTranslation(0.0f, -2.3f, -2.0f);
+	theWorldThreshold = translateThreshold;
+
+	//Set Border Parameters
+
+	XMMATRIX translateBorderTop = XMMatrixTranslation(0.0f, 4.6f , -1.9f);
+	XMMATRIX translateBorderBottom = XMMatrixTranslation(0.0f, -3.1f, -1.9f);
+	XMMATRIX translateBorderColumnLeft = XMMatrixTranslation(-5.5f + 0.125, 0.0f, -1.9f); //0.125 is Object Width
+	XMMATRIX translateBorderColumnRight = XMMatrixTranslation(5.5f - 0.125, 0.0f, -1.9f);
+	XMMATRIX translateBorderColumnLeftMiddle = XMMatrixTranslation(-1.5f, 0.0f, -1.9f);
+	XMMATRIX translateBorderColumnRightMiddle = XMMatrixTranslation(2.0f, 0.0f, -1.9f);
+
+	theWorldBorderTop = translateBorderTop;
+	theWorldBorderBottom = translateBorderBottom;
+	theWorldBorderColumnLeft = translateBorderColumnLeft;
+	theWorldBorderColumnRight = translateBorderColumnRight;
+	theWorldBorderColumnLeftMiddle = translateBorderColumnLeftMiddle;
+	theWorldBorderColumnRightMiddle = translateBorderColumnRightMiddle;
+
+	//Set Border Parameters
 	
 
     // Clear the back buffer 
@@ -1132,6 +1296,169 @@ void Render()
 	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
 
 	g_pImmediateContext->DrawIndexed(6, 0, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+
+	//FALL THRESHOLD
+
+	ConstantBuffer cb8;
+
+	cb8.world = XMMatrixTranspose(theWorldThreshold);
+	cb8.view = XMMatrixTranspose(theView);
+	cb8.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.8f; theColor.y = 0.8f; theColor.z = 0.8f; theColor.w = 1.0f;
+	cb8.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb8, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 6, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//BORDERS
+
+	//Width Bottom
+
+	ConstantBuffer cb9;
+
+	cb9.world = XMMatrixTranspose(theWorldBorderTop);
+	cb9.view = XMMatrixTranspose(theView);
+	cb9.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
+	cb9.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb9, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 12, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//Width Top
+	ConstantBuffer cb10;
+
+	cb10.world = XMMatrixTranspose(theWorldBorderBottom);
+	cb10.view = XMMatrixTranspose(theView);
+	cb10.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
+	cb10.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb10, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 12, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//COLUMN LEFT
+
+	ConstantBuffer cb11;
+
+	cb11.world = XMMatrixTranspose(theWorldBorderColumnLeft);
+	cb11.view = XMMatrixTranspose(theView);
+	cb11.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
+	cb11.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb11, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 18, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//COLUMN RIGHT
+
+	ConstantBuffer cb12;
+
+	cb12.world = XMMatrixTranspose(theWorldBorderColumnRight);
+	cb12.view = XMMatrixTranspose(theView);
+	cb12.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
+	cb12.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb12, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 18, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//COLUMN LEFT MIDDLE
+
+	ConstantBuffer cb13;
+
+	cb13.world = XMMatrixTranspose(theWorldBorderColumnLeftMiddle);
+	cb13.view = XMMatrixTranspose(theView);
+	cb13.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
+	cb13.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb13, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 18, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+
+	//COLUMN MIDDLE RIGHT
+
+	ConstantBuffer cb14;
+
+	cb14.world = XMMatrixTranspose(theWorldBorderColumnRightMiddle);
+	cb14.view = XMMatrixTranspose(theView);
+	cb14.projection = XMMatrixTranspose(theProjection);
+
+	//Colors
+
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f;
+	cb14.Color = theColor;
+
+	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb14, 0, 0);
+
+	// Render a triangle
+	g_pImmediateContext->VSSetShader(g_pVertexShader, nullptr, 0);
+	g_pImmediateContext->VSSetConstantBuffers(0, 1, &constantBuffer); // VSSetConstantBuffers( Register Number/Order of Set Constant Buffer , Number of Buffers , Set Constant Buffer )
+	g_pImmediateContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
+
+	g_pImmediateContext->DrawIndexed(6, 18, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
 
 
 	//Check Score
