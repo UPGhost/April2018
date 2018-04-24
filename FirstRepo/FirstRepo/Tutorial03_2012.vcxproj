@@ -27,7 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>Tutorial03</ProjectName>
+    <ProjectName>RGBgame</ProjectName>
     <ProjectGuid>{4D201D5F-2B78-4D13-9774-E77012EADEF1}</ProjectGuid>
     <RootNamespace>Tutorial03</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -398,11 +398,9 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Player.cpp" />
     <ClCompile Include="RGB_Main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Player.h" />
     <CLInclude Include="resource.h" />
     <ClInclude Include="RGB_Main.h" />
     <ResourceCompile Include="Tutorial03.rc" />

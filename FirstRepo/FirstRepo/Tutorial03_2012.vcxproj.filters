@@ -26,9 +26,6 @@
     <ClInclude Include="RGB_Main.h">
       <Filter>Resource Files</Filter>
     </ClInclude>
-    <ClInclude Include="Player.h">
-      <Filter>Resource Files\Objects</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="RGB_PSandVS.fx">
@@ -43,9 +40,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RGB_Main.cpp" />
-    <ClCompile Include="Player.cpp">
-      <Filter>Objects</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

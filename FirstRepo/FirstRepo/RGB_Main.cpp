@@ -36,8 +36,8 @@ XMMATRIX				theWorldPlayerLives3;
 
 XMMATRIX				theWorldThreshold; //Fall Fail Threshold
 
-XMMATRIX				theWorldBorderBottom; //Borders
-XMMATRIX				theWorldBorderTop;
+//XMMATRIX				theWorldBorderBottom; //Borders
+//XMMATRIX				theWorldBorderTop;
 XMMATRIX				theWorldBorderColumnLeft;
 XMMATRIX				theWorldBorderColumnRight;
 XMMATRIX				theWorldBorderColumnLeftMiddle;
@@ -605,7 +605,7 @@ HRESULT InitDevice()
 	if (FAILED(hr))
 		return hr;
 
-	//Initialise World Matrix
+	//Initialise World Matrix NOT REQUIRED
 
 	/*
 	theWorldPlayer = XMMatrixIdentity();
@@ -1052,17 +1052,17 @@ void Render()
 
 	if (playerFailCount > 0.0f)
 	{
-		playerLife1 = 0.0f;
+		playerLife1 = 0.3f;
 	}
 
 	if (playerFailCount > 1.0f)
 	{
-		playerLife2 = 0.0f;
+		playerLife2 = 0.3f;
 	}
 
 	if (playerFailCount > 2.0f)
 	{
-		playerLife3 = 0.0f;
+		playerLife3 = 0.3f;
 		gameOverTime = t;
 		gameOver = true;
 	}
@@ -1126,8 +1126,8 @@ void Render()
 	XMMATRIX translateBorderColumnLeftMiddle = XMMatrixTranslation(-1.5f, 0.0f, -1.9f);
 	XMMATRIX translateBorderColumnRightMiddle = XMMatrixTranslation(2.0f, 0.0f, -1.9f);
 
-	theWorldBorderTop = translateBorderTop;
-	theWorldBorderBottom = translateBorderBottom;
+	//theWorldBorderTop = translateBorderTop;
+	//theWorldBorderBottom = translateBorderBottom;
 	theWorldBorderColumnLeft = translateBorderColumnLeft;
 	theWorldBorderColumnRight = translateBorderColumnRight;
 	theWorldBorderColumnLeftMiddle = translateBorderColumnLeftMiddle;
@@ -1327,8 +1327,11 @@ void Render()
 
 	//BORDERS
 
-	//Width Bottom
+	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f; //All Border Colours
 
+	//WIDTH TOP
+
+	/*
 	ConstantBuffer cb9;
 
 	cb9.world = XMMatrixTranspose(theWorldBorderTop);
@@ -1337,7 +1340,6 @@ void Render()
 
 	//Colors
 
-	theColor.x = 0.0f; theColor.y = 0.5f; theColor.z = 0.5f; theColor.w = 1.0f; //All Border Colours
 	cb9.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb9, 0, 0);
@@ -1349,16 +1351,20 @@ void Render()
 	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
 
 	g_pImmediateContext->DrawIndexed(6, 12, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+	*/
 
-	//Width Top
+	//WIDTH BOTTOM
+
+	/*
 	ConstantBuffer cb10;
 
 	cb10.world = XMMatrixTranspose(theWorldBorderBottom);
 	cb10.view = XMMatrixTranspose(theView);
 	cb10.projection = XMMatrixTranspose(theProjection);
+	
 
 	//Colors
-
+	
 	cb10.Color = theColor;
 
 	g_pImmediateContext->UpdateSubresource(constantBuffer, 0, nullptr, &cb10, 0, 0);
@@ -1370,6 +1376,7 @@ void Render()
 	g_pImmediateContext->PSSetConstantBuffers(0, 1, &constantBuffer); // *PS* Set Buffers. Allow for Set Colour because Pixel Shader.
 
 	g_pImmediateContext->DrawIndexed(6, 12, 0); //Set (x, 0, 0) to number of Draw Vertices for First Object.
+	*/
 
 	//COLUMN LEFT
 
@@ -1380,6 +1387,7 @@ void Render()
 	cb11.projection = XMMatrixTranspose(theProjection);
 
 	//Colors
+
 
 	cb11.Color = theColor;
 
